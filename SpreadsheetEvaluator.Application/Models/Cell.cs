@@ -1,12 +1,16 @@
-﻿using System.Linq;
+﻿using SpreadsheetEvaluator.Application.Interfaces;
+using System;
 
 namespace SpreadsheetEvaluator.Application.Models
 {
     public class Cell
     {
         public string Coordinates { get; set; }
+
         public string Value { get; set; }
-        public Formula Formula { get; set; }
+
+        public IFormulaStrategy Formula { get; set; }
+
         public Type ValueType { get;}
         public enum Type
         {
@@ -23,21 +27,20 @@ namespace SpreadsheetEvaluator.Application.Models
             ValueType = type;
         }
 
-        public Cell(string coordinates, Type type, Formula formula)
+        public Cell(string coordinates, Type type, IFormulaStrategy formula)
         {
-            Coordinates = coordinates;
-            ValueType = type;
-            Formula = formula;
-            var formulaValues = formula.CellReferences.Select(c => c.Value);
-            Value = formula.Function(formulaValues);
-        }
-
-        public Cell(string coordinates, string value, Type type, Formula formula)
-        {
-            Coordinates = coordinates;
-            Value = value;
-            ValueType = type;
-            Formula = formula;
+            try
+            {
+                Formula = formula;
+                Coordinates = coordinates;
+                ValueType = type;
+                Value = formula.Evaluate();
+            }
+            catch (Exception e)
+            {
+                ValueType = Type.Error;
+                Value = "Could not evaluate formula!";
+            }
         }
     }
 }

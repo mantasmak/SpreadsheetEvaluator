@@ -1,7 +1,9 @@
 ﻿using Newtonsoft.Json.Linq;
 using SpreadsheetEvaluator.Application.Interfaces;
 using SpreadsheetEvaluator.Application.Models;
+using SpreadsheetEvaluator.Application.Strategies;
 using SpreadsheetEvaluator.Application.Utilities;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -9,52 +11,57 @@ namespace SpreadsheetEvaluator.Application.Parsers
 {
     public class FormulaJsonParser : IFormulaJsonParser
     {
-        public Formula Parse(string jsonFormula, IEnumerable<Job> jobs)
+        public IFormulaStrategy Parse(string jsonFormula, IEnumerable<Job> jobs)
         {
             JObject json = JObject.Parse(jsonFormula);
-            var formula = new Formula() { CellReferences = new List<Cell>() };
+            IFormulaStrategy formulaStrategy;
 
             var properties = JsonParserUtilities.GetCellProperty(json);
 
             switch(properties.Name)
             {
                 case "value":
-                    SetValue(JsonParserUtilities.GetCellProperty(properties.Value), formula);
+                    formulaStrategy = CreateValueFormulaStrategyByValue(JsonParserUtilities.GetCellProperty(properties.Value));
                     break;
                 case "reference":
-                    SetFormulaCellByReference(properties.Value.ToString(), jobs, formula);
+                    formulaStrategy = CreateValueFormulaStrategyByReference(properties.Value.ToString(), jobs);
+                    break;
+                case "if":
+                    formulaStrategy = CreateIfFormulaStrategy(properties, jobs);
                     break;
                 default:
-                    SetFunction(properties, jobs, formula);
+                    formulaStrategy = CreateFormulaStrategy(properties, jobs);
                     break;
             };
 
-            return formula;
+            return formulaStrategy;
         }
 
-        private void SetValue(JProperty property, Formula formula)
+        private ValueFormulaStrategy CreateValueFormulaStrategyByValue(JProperty property)
         {
             var valueType = JsonParserUtilities.StringToCellType(property.Name);
             var value = property.Value.ToString();
-            formula.CellReferences.Add(new Cell(string.Empty, value, valueType));
+
+            var cell = new Cell("", value, valueType);
+
+            return new ValueFormulaStrategy(cell);
         }
 
-        private void SetFormulaCellByReference(string coordinates, IEnumerable<Job> jobs, Formula formula)
+        private ValueFormulaStrategy CreateValueFormulaStrategyByReference(string coordinates, IEnumerable<Job> jobs)
         {
             var cell = GetCellByCoordinates(coordinates, jobs);
 
-            //Error
-            if (cell == null)
-                return;
+            if(cell != null)
+                return new ValueFormulaStrategy(cell);
 
-            formula.CellReferences.Add(cell);
+            return new ValueFormulaStrategy();
         }
 
         private Cell GetCellByCoordinates(string coordinates, IEnumerable<Job> jobs)
         {
             foreach (var job in jobs)
             {
-                var cell = job.Cells.Where(c => c.Coordinates == coordinates)
+                var cell = job.Data.Where(c => c.Coordinates == coordinates)
                                     .Select(c => c)
                                     .FirstOrDefault();
 
@@ -65,57 +72,119 @@ namespace SpreadsheetEvaluator.Application.Parsers
             return null;
         }
 
-        private void SetFunction(JProperty property, IEnumerable<Job> jobs, Formula formula)
+        private IFormulaStrategy CreateIfFormulaStrategy(JProperty properties, IEnumerable<Job> jobs)
         {
-            foreach (var jsonCoordinate in property.Value)
-            {
-                var coordinates = string.Empty;
-                if (jsonCoordinate.Type != JTokenType.Property)
-                {
-                    coordinates = jsonCoordinate.First.ToObject<JProperty>().Value.ToString();
-                }
-                else
-                {
-                    coordinates = jsonCoordinate.ToObject<JProperty>().Value.ToString();
-                }
+            var conditionProperty = properties.Value.First().First.ToObject<JProperty>();
 
-                SetFormulaCellByReference(coordinates, jobs, formula);
-            }
-            
+            var conditionFormulaStrategy = CreateFormulaStrategy(conditionProperty, jobs);
 
-            switch (property.Name)
+            RemoveConditionFromIfStatement(properties);
+
+            var formulaStrategy = (IfFormulaStrategy) CreateFormulaStrategy(properties, jobs);
+            formulaStrategy.ConditionStrategy = conditionFormulaStrategy;
+
+            return formulaStrategy;
+        }
+
+        private void RemoveConditionFromIfStatement(JProperty ifStatementContent)
+        {
+            var jArray = ifStatementContent.Value.ToObject<JArray>();
+            jArray.RemoveAt(0);
+            ifStatementContent.Value = jArray;
+        }
+
+        private IFormulaStrategy CreateFormulaStrategy(JProperty property, IEnumerable<Job> jobs)
+        {
+            var formulaStrategy = ChooseFormulaStrategy(property.Name);
+
+            formulaStrategy.Cells = ParseStrategyCells(property.Value, jobs);
+
+            return formulaStrategy;
+        }
+
+        private IFormulaStrategy ChooseFormulaStrategy(string formulaName)
+        {
+            switch (formulaName)
             {
                 case "sum":
-                    formula.Function = formula.Sum;
-                    break;
+                    return new SumFormulaStrategy();
+
                 case "multiply":
-                    formula.Function = formula.Multiply;
-                    break;
+                    return new MultiplyFormulaStrategy();
+
                 case "divide":
-                    formula.Function = formula.Divide;
-                    break;
+                    return new DivideFormulaStrategy();
+
                 case "is_greater":
-                    formula.Function = formula.IsGreater;
-                    break;
+                    return new IsGreaterFormulaStrategy();
+
                 case "is_equal":
-                    formula.Function = formula.IsEqual;
-                    break;
+                    return new IsEqualFormulaStrategy();
+
                 case "not":
-                    formula.Function = formula.Not;
-                    break;
+                    return new NotFormulaStrategy();
+
                 case "and":
-                    formula.Function = formula.And;
-                    break;
+                    return new AndFormulaStrategy();
+
                 case "or":
-                    formula.Function = formula.Or;
-                    break;
+                    return new OrFormulaStrategy();
+
                 case "if":
-                    formula.Function = formula.IfFunction;
-                    break;
+                    return new IfFormulaStrategy();
+
                 case "concat":
-                    formula.Function = formula.Concat;
-                    break;
+                    return new ConcatFormulaStrategy();
+
+                default:
+                    throw new ArgumentException();
             }
+        }
+
+        private IEnumerable<Cell> ParseStrategyCells(JToken jsonOperands, IEnumerable<Job> jobs)
+        {
+            var cells = new List<Cell>();
+
+            if (jsonOperands.Type == JTokenType.Array)
+            {
+                foreach (var operand in jsonOperands)
+                {
+                    if (operand.First.ToObject<JProperty>().Name == "value")
+                    {
+                        cells.Add(CreteValueCell(operand));
+                    }
+                    else
+                    {
+                        var coordinates = operand["reference"].ToString();
+                        var cell = GetCellByCoordinates(coordinates, jobs);
+
+                        if (cell != null)
+                            cells.Add(cell);
+                    }
+                }
+
+                return cells;
+            }
+            else
+            {
+                var coordinates = jsonOperands["reference"].ToString();
+                var cell = GetCellByCoordinates(coordinates, jobs);
+
+                if (cell != null)
+                    cells.Add(cell);
+
+                return cells;
+            }
+        }
+
+        private Cell CreteValueCell(JToken jsonValue)
+        {
+            var jsonCellProperty = JsonParserUtilities.GetCellProperty(jsonValue);
+            var cellValue = jsonCellProperty.Value.ToString();
+            var cellTypeString = jsonCellProperty.Name;
+            var cellType = JsonParserUtilities.StringToCellType(cellTypeString);
+
+            return new Cell("", cellValue, cellType);
         }
     }
 }

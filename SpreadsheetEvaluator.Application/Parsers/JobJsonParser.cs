@@ -1,8 +1,8 @@
 ﻿using Newtonsoft.Json.Linq;
 using SpreadsheetEvaluator.Application.Interfaces;
 using SpreadsheetEvaluator.Application.Models;
+using SpreadsheetEvaluator.Application.Strategies;
 using SpreadsheetEvaluator.Application.Utilities;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -30,7 +30,11 @@ namespace SpreadsheetEvaluator.Application.Parsers
 
             foreach (var job in json["jobs"])
             {
-                var newJob = new Job() { Id = job["id"].ToString() };
+                var newJob = new Job() 
+                { 
+                    Id = job["id"].ToString(),
+                    Data = new List<Cell>()
+                };
                 var rowIndex = -1;
 
                 foreach (var dataArray in job["data"])
@@ -48,26 +52,31 @@ namespace SpreadsheetEvaluator.Application.Parsers
                         if (IsFormula(cell))
                         {
                             var formula = _formulaJsonParser.Parse(cell.ToString(), jobs);
-                            var cellType = formula.CellReferences.First().ValueType;
 
-                            if (formula.Function != null)
+                            if (formula.Cells.Count() == 0)
                             {
-                                newCell = new Cell(cellCoordinates, cellType, formula);
+                                newCell = new Cell(cellCoordinates, "Reference not found.", Cell.Type.Error);
                             }
                             else
                             {
-                                var value = formula.CellReferences.First().Value;
-                                newCell = new Cell(cellCoordinates, value, cellType, formula);
+                                Cell.Type cellType;
+                                if (formula is IsGreaterFormulaStrategy || formula is IsEqualFormulaStrategy)
+                                    cellType = Cell.Type.Boolean;
+                                else
+                                    cellType = formula.Cells.First().ValueType;
+
+                                newCell = new Cell(cellCoordinates, cellType, formula);
                             }
                         }
                         else
                         {
                             var property = JsonParserUtilities.GetCellProperty(cell);
                             var cellType = JsonParserUtilities.StringToCellType(property.Name);
+
                             newCell = new Cell(cellCoordinates, property.Value.ToString(), cellType);
                         }
 
-                        newJob.Cells.Add(newCell);
+                        newJob.Data.Add(newCell);
                     }
                 }
 

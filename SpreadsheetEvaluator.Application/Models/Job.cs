@@ -1,10 +1,14 @@
-﻿using System.Collections.Generic;
+﻿using Newtonsoft.Json;
+using System.Collections.Generic;
 
 namespace SpreadsheetEvaluator.Application.Models
 {
     public class Job
     {
+        [JsonProperty("id")]
         public string Id { get; set; }
-        public List<Cell> Cells { get; } = new List<Cell>();
+
+        [JsonProperty("data")]
+        public ICollection<Cell> Data { get; set; }
     }
 }

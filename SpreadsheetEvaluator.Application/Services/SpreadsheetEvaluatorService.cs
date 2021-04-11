@@ -1,33 +1,41 @@
 ﻿using SpreadsheetEvaluator.Application.Interfaces;
+using SpreadsheetEvaluator.Application.Models;
 using SpreadsheetEvaluator.Application.Parsers;
 using SpreadsheetEvaluator.Infrastructure.Interfaces;
-using System;
 using System.Threading.Tasks;
 
 namespace SpreadsheetEvaluator.Application
 {
-    class SpreadsheetEvaluatorService : ISpreadsheetEvaluatorService
+    public class SpreadsheetEvaluatorService : ISpreadsheetEvaluatorService
     {
         IJobWebService _jobWebService;
         IJobJsonParser _jobJsonParser;
+        ISubmissionSerializer _submissionSerializer;
 
-        public SpreadsheetEvaluatorService(IJobWebService jobWebService, IJobJsonParser jobJsonParser)
+        public SpreadsheetEvaluatorService(IJobWebService jobWebService, IJobJsonParser jobJsonParser, ISubmissionSerializer submissionSerializer)
         {
             _jobWebService = jobWebService;
             _jobJsonParser = jobJsonParser;
+            _submissionSerializer = submissionSerializer;
         }
 
         public async Task<string> EvaluateSpreadsheet()
         {
             var jobString = await _jobWebService.GetJobsAsync();
-            var parsedJson = _jobJsonParser.Parse(jobString);
+            var parsedJobs = _jobJsonParser.Parse(jobString);
 
-            throw new NotImplementedException();
+            var submission = new Submission()
+            {
+                Email = "htrs@gmail.com",
+                Results = parsedJobs
+            };
+
+            var serializedSubmission = _submissionSerializer.Serialize(submission);
+
+            //var response = await _jobWebService.PostResultsAsync(serializedSubmission);
+
+            return serializedSubmission;
         }
-        //get json
-
-        //parse json
-        //add cells to spreadsheet
         
     }
 }

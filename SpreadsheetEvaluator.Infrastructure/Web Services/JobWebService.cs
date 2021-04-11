@@ -1,6 +1,7 @@
-﻿using SpreadsheetEvaluator.Infrastructure.Interfaces;
-using System.Collections.Generic;
+﻿using Newtonsoft.Json.Linq;
+using SpreadsheetEvaluator.Infrastructure.Interfaces;
 using System.Net.Http;
+using System.Text;
 using System.Threading.Tasks;
 
 namespace SpreadsheetEvaluator.Infrastructure.Web_Services
@@ -9,24 +10,30 @@ namespace SpreadsheetEvaluator.Infrastructure.Web_Services
     {
         private static readonly HttpClient client = new HttpClient();
         private string _hubUrl = "https://www.wix.com/_serverless/hiring-task-spreadsheet-evaluator/jobs";
+        private string _submissionUrl;
 
         public async Task<string> GetJobsAsync()
         {
-            return await client.GetStringAsync(_hubUrl);
+            var result = await client.GetStringAsync(_hubUrl);
+
+            SaveSubmissionUrl(result);
+
+            return result;
         }
 
-        public async Task<string> PostResultsAsync(string submissionUrl, string results)
+        public async Task<string> PostResultsAsync(string results)
         {
-            var values = new Dictionary<string, string>
-            {
-                { "result", results }
-            };
+            var content = new StringContent(results, Encoding.UTF8, "application/json");
+            var result = await client.PostAsync(_submissionUrl, content);
 
-            var content = new FormUrlEncodedContent(values);
+            return result.ToString();
+        }
 
-            var response = await client.PostAsync(submissionUrl, content);
+        private void SaveSubmissionUrl(string result)
+        {
+            var parsedResult = JObject.Parse(result);
 
-            return await response.Content.ReadAsStringAsync();
+            _submissionUrl = parsedResult["submissionUrl"].ToString();
         }
     }
 }
