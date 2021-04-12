@@ -17,8 +17,8 @@ namespace SpreadsheetEvaluator.Application.Strategies
 
         override protected string EvaluateFormula()
         {
-            var firstOperand = int.Parse(Cells.ElementAt(0).Value);
-            var secondOperand = int.Parse(Cells.ElementAt(1).Value);
+            var firstOperand = float.Parse(Cells.ElementAt(0).Value);
+            var secondOperand = float.Parse(Cells.ElementAt(1).Value);
 
             return firstOperand > secondOperand ? "true" : "false";
         }

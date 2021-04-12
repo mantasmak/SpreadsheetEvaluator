@@ -17,10 +17,14 @@ namespace SpreadsheetEvaluator.Application.Strategies
 
         override protected string EvaluateFormula()
         {
-            var firstOperand = bool.Parse(Cells.ElementAt(0).Value);
-            var secondOperand = bool.Parse(Cells.ElementAt(1).Value);
+            var result = true;
 
-            return firstOperand && secondOperand ? "true" : "false";
+            foreach (var cell in Cells)
+            { 
+                result &= bool.Parse(cell.Value);
+            }
+
+            return result ? "true" : "false";
         }
     }
 }

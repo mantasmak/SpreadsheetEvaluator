@@ -17,41 +17,35 @@ namespace SpreadsheetEvaluator.Application.Parsers
             _formulaJsonParser = formulaJsonParser;
         }
 
-        public JobJsonParser(FormulaJsonParser formulaJsonParser)
-        {
-            _formulaJsonParser = formulaJsonParser;
-        }
-
         public IEnumerable<Job> Parse(string jsonString)
         {
             JObject json = JObject.Parse(jsonString);
             var jobs = new List<Job>();
-            var collumnIndex = new List<int>();
 
             foreach (var job in json["jobs"])
             {
                 var newJob = new Job() 
                 { 
                     Id = job["id"].ToString(),
-                    Data = new List<Cell>()
                 };
+
                 var rowIndex = -1;
+                var previousRowIndex = rowIndex;
 
                 foreach (var dataArray in job["data"])
                 {
+                    var collumnIndex = -1;
                     rowIndex++;
-                    if (collumnIndex.Count() <= rowIndex)
-                        collumnIndex.Add(-1);
 
                     foreach (var cell in dataArray)
                     {
-                        collumnIndex[rowIndex]++;
-                        var cellCoordinates = $"{IntToCollumnName(collumnIndex[rowIndex])}{rowIndex + 1}";
+                        collumnIndex++;
+                        var cellCoordinates = $"{IntToCollumnName(collumnIndex)}{rowIndex + 1}";
 
-                        Cell newCell = null;
+                        Cell newCell;
                         if (IsFormula(cell))
                         {
-                            var formula = _formulaJsonParser.Parse(cell.ToString(), jobs);
+                            var formula = _formulaJsonParser.Parse(cell.ToString(), newJob);
 
                             if (formula.Cells.Count() == 0)
                             {
@@ -76,7 +70,13 @@ namespace SpreadsheetEvaluator.Application.Parsers
                             newCell = new Cell(cellCoordinates, property.Value.ToString(), cellType);
                         }
 
-                        newJob.Data.Add(newCell);
+                        if (rowIndex != previousRowIndex)
+                        {
+                            newJob.Data.Add(new List<Cell>());
+                            previousRowIndex = rowIndex;
+                        }
+
+                        newJob.Data[rowIndex].Add(newCell);
                     }
                 }
 

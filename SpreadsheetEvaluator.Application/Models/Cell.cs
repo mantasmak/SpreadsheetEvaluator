@@ -11,7 +11,7 @@ namespace SpreadsheetEvaluator.Application.Models
 
         public IFormulaStrategy Formula { get; set; }
 
-        public Type ValueType { get;}
+        public Type ValueType { get; set; }
         public enum Type
         {
             Number,

@@ -11,7 +11,7 @@ namespace SpreadsheetEvaluator.Application.Parsers
 {
     public class FormulaJsonParser : IFormulaJsonParser
     {
-        public IFormulaStrategy Parse(string jsonFormula, IEnumerable<Job> jobs)
+        public IFormulaStrategy Parse(string jsonFormula, Job job)
         {
             JObject json = JObject.Parse(jsonFormula);
             IFormulaStrategy formulaStrategy;
@@ -24,13 +24,13 @@ namespace SpreadsheetEvaluator.Application.Parsers
                     formulaStrategy = CreateValueFormulaStrategyByValue(JsonParserUtilities.GetCellProperty(properties.Value));
                     break;
                 case "reference":
-                    formulaStrategy = CreateValueFormulaStrategyByReference(properties.Value.ToString(), jobs);
+                    formulaStrategy = CreateValueFormulaStrategyByReference(properties.Value.ToString(), job);
                     break;
                 case "if":
-                    formulaStrategy = CreateIfFormulaStrategy(properties, jobs);
+                    formulaStrategy = CreateIfFormulaStrategy(properties, job);
                     break;
                 default:
-                    formulaStrategy = CreateFormulaStrategy(properties, jobs);
+                    formulaStrategy = CreateFormulaStrategy(properties, job);
                     break;
             };
 
@@ -47,40 +47,39 @@ namespace SpreadsheetEvaluator.Application.Parsers
             return new ValueFormulaStrategy(cell);
         }
 
-        private ValueFormulaStrategy CreateValueFormulaStrategyByReference(string coordinates, IEnumerable<Job> jobs)
+        private ReferenceFormulaStrategy CreateValueFormulaStrategyByReference(string coordinates, Job job)
         {
-            var cell = GetCellByCoordinates(coordinates, jobs);
+            var cell = GetCellByCoordinates(coordinates, job);
 
             if(cell != null)
-                return new ValueFormulaStrategy(cell);
+                return new ReferenceFormulaStrategy(cell);
 
-            return new ValueFormulaStrategy();
+            return new ReferenceFormulaStrategy();
         }
 
-        private Cell GetCellByCoordinates(string coordinates, IEnumerable<Job> jobs)
+        private Cell GetCellByCoordinates(string coordinates, Job job)
         {
-            foreach (var job in jobs)
-            {
-                var cell = job.Data.Where(c => c.Coordinates == coordinates)
-                                    .Select(c => c)
-                                    .FirstOrDefault();
+            var allCells = job.Data.SelectMany(d => d);
 
-                if (cell != null)
-                    return cell;
-            }
+            var cell = allCells.Where(c => c.Coordinates == coordinates)
+                                .Select(c => c)
+                                .FirstOrDefault();
+
+            if (cell != null)
+                return cell;
 
             return null;
         }
 
-        private IFormulaStrategy CreateIfFormulaStrategy(JProperty properties, IEnumerable<Job> jobs)
+        private IFormulaStrategy CreateIfFormulaStrategy(JProperty properties, Job job)
         {
             var conditionProperty = properties.Value.First().First.ToObject<JProperty>();
 
-            var conditionFormulaStrategy = CreateFormulaStrategy(conditionProperty, jobs);
+            var conditionFormulaStrategy = CreateFormulaStrategy(conditionProperty, job);
 
             RemoveConditionFromIfStatement(properties);
 
-            var formulaStrategy = (IfFormulaStrategy) CreateFormulaStrategy(properties, jobs);
+            var formulaStrategy = (IfFormulaStrategy) CreateFormulaStrategy(properties, job);
             formulaStrategy.ConditionStrategy = conditionFormulaStrategy;
 
             return formulaStrategy;
@@ -93,11 +92,11 @@ namespace SpreadsheetEvaluator.Application.Parsers
             ifStatementContent.Value = jArray;
         }
 
-        private IFormulaStrategy CreateFormulaStrategy(JProperty property, IEnumerable<Job> jobs)
+        private IFormulaStrategy CreateFormulaStrategy(JProperty property, Job job)
         {
             var formulaStrategy = ChooseFormulaStrategy(property.Name);
 
-            formulaStrategy.Cells = ParseStrategyCells(property.Value, jobs);
+            formulaStrategy.Cells = ParseStrategyCells(property.Value, job);
 
             return formulaStrategy;
         }
@@ -141,7 +140,7 @@ namespace SpreadsheetEvaluator.Application.Parsers
             }
         }
 
-        private IEnumerable<Cell> ParseStrategyCells(JToken jsonOperands, IEnumerable<Job> jobs)
+        private IEnumerable<Cell> ParseStrategyCells(JToken jsonOperands, Job job)
         {
             var cells = new List<Cell>();
 
@@ -156,7 +155,7 @@ namespace SpreadsheetEvaluator.Application.Parsers
                     else
                     {
                         var coordinates = operand["reference"].ToString();
-                        var cell = GetCellByCoordinates(coordinates, jobs);
+                        var cell = GetCellByCoordinates(coordinates, job);
 
                         if (cell != null)
                             cells.Add(cell);
@@ -168,7 +167,7 @@ namespace SpreadsheetEvaluator.Application.Parsers
             else
             {
                 var coordinates = jsonOperands["reference"].ToString();
-                var cell = GetCellByCoordinates(coordinates, jobs);
+                var cell = GetCellByCoordinates(coordinates, job);
 
                 if (cell != null)
                     cells.Add(cell);

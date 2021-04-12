@@ -5,6 +5,6 @@ namespace SpreadsheetEvaluator.Application.Interfaces
 {
     public interface IFormulaJsonParser
     {
-        public IFormulaStrategy Parse(string jsonFormula, IEnumerable<Job> jobs);
+        public IFormulaStrategy Parse(string jsonFormula, Job job);
     }
 }
