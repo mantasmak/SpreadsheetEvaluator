@@ -1,34 +1,37 @@
 ﻿using SpreadsheetEvaluator.Application.Interfaces;
 using SpreadsheetEvaluator.Application.Models;
-using System.Collections.Generic;
 using System.Linq;
 
 namespace SpreadsheetEvaluator.Application.Strategies
 {
     class IfFormulaStrategy : FormulaStrategy
     {
-        public IfFormulaStrategy() : base()
-        {
-
-        }
-
-        public IfFormulaStrategy(Cell cell) : base(cell) { }
-
-        public IfFormulaStrategy(ICollection<Cell> cells) : base(cells) { }
+        public override Cell.Type ResultValueType { get; protected set; }
 
         internal IFormulaStrategy ConditionStrategy { get; set; }
 
         override protected string EvaluateFormula()
         {
-            var valueIfTrue = Cells.ElementAt(0).Value;
-            var valueIfFalse = Cells.ElementAt(1).Value;
+            for (int i = 0; i < Cells.Count() - 2; i++)
+                ConditionStrategy.Cells[i] = Cells[i];
+
+            var cellIfTrue = Cells[Cells.Count() - 2];
+            var cellIfFalse = Cells.Last();
 
             var conditionResult = ConditionStrategy.Evaluate();
 
             if (bool.Parse(conditionResult))
-                return valueIfTrue;
+            {
+                ResultValueType = cellIfTrue.ValueType;
+
+                return cellIfTrue.Value;
+            }
             else
-                return valueIfFalse;
+            {
+                ResultValueType = cellIfFalse.ValueType;
+
+                return cellIfFalse.Value;
+            }
         }
     }
 }

@@ -1,23 +1,14 @@
 ﻿using SpreadsheetEvaluator.Application.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SpreadsheetEvaluator.Application.Strategies
 {
     class NotFormulaStrategy : FormulaStrategy
     {
-        public NotFormulaStrategy() : base()
-        {
-
-        }
-
-        public NotFormulaStrategy(Cell cell) : base(cell) { }
-
-        public NotFormulaStrategy(ICollection<Cell> cells) : base(cells) { }
+        public override Cell.Type ResultValueType { get; protected set; } = Cell.Type.Boolean;
 
         override protected string EvaluateFormula ()
         {
-            var firstOperand = bool.Parse(Cells.ElementAt(0).Value);
+            var firstOperand = bool.Parse(Cells[0].Value);
 
             return firstOperand ? "false" : "true";
         }

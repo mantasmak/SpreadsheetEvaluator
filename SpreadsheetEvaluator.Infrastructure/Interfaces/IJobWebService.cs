@@ -6,6 +6,6 @@ namespace SpreadsheetEvaluator.Infrastructure.Interfaces
     {
         public Task<string> GetJobsAsync();
 
-        public Task<string> PostResultsAsync(string results);
+        public Task<string> PostResultsAsync(string results, string submissionUrl);
     }
 }

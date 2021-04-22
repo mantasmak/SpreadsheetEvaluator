@@ -1,24 +1,15 @@
 ﻿using SpreadsheetEvaluator.Application.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SpreadsheetEvaluator.Application.Strategies
 {
     class IsGreaterFormulaStrategy : FormulaStrategy
     {
-        public IsGreaterFormulaStrategy() : base()
-        {
-
-        }
-
-        public IsGreaterFormulaStrategy(Cell cell) : base(cell) { }
-
-        public IsGreaterFormulaStrategy(ICollection<Cell> cells) : base(cells) { }
+        public override Cell.Type ResultValueType { get; protected set; } = Cell.Type.Boolean;
 
         override protected string EvaluateFormula()
         {
-            var firstOperand = float.Parse(Cells.ElementAt(0).Value);
-            var secondOperand = float.Parse(Cells.ElementAt(1).Value);
+            var firstOperand = float.Parse(Cells[0].Value);
+            var secondOperand = float.Parse(Cells[1].Value);
 
             return firstOperand > secondOperand ? "true" : "false";
         }

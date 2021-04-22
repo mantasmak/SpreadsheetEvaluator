@@ -3,8 +3,8 @@ using System.Collections.Generic;
 
 namespace SpreadsheetEvaluator.Application.Interfaces
 {
-    public interface IFormulaJsonParser
+    public interface IEvaluator
     {
-        public IFormulaStrategy Parse(string jsonFormula, Job job);
+        void Evaluate(List<List<Cell>> spreadsheet);
     }
 }

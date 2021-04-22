@@ -4,6 +4,6 @@ namespace SpreadsheetEvaluator.Application.Interfaces
 {
     interface ISpreadsheetEvaluatorService
     {
-        Task<string> EvaluateSpreadsheet();
+        Task<string> EvaluateSpreadsheet(string emailAddress);
     }
 }

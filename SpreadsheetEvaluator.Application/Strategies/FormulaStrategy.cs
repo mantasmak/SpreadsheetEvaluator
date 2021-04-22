@@ -7,22 +7,8 @@ namespace SpreadsheetEvaluator.Application.Strategies
 {
     abstract class FormulaStrategy : IFormulaStrategy
     {
-        public IEnumerable<Cell> Cells { get; set; }
-
-        public FormulaStrategy()
-        {
-            Cells = new List<Cell>();
-        }
-
-        public FormulaStrategy(Cell cell)
-        {
-            Cells = new List<Cell>() { cell };
-        }
-
-        public FormulaStrategy(ICollection<Cell> cells)
-        {
-            Cells = cells;
-        }
+        public List<Cell> Cells { get; set; } = new List<Cell>();
+        virtual public Cell.Type ResultValueType { get; protected set; }
 
         public string Evaluate()
         {

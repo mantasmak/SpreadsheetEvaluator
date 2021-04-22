@@ -5,6 +5,6 @@ namespace SpreadsheetEvaluator.Application.Parsers
 {
     public interface IJobJsonParser
     {
-        public IEnumerable<Job> Parse(string jsonString);
+        public Submission Parse(string jsonString);
     }
 }

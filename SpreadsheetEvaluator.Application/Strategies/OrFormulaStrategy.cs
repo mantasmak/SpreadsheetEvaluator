@@ -1,19 +1,10 @@
 ﻿using SpreadsheetEvaluator.Application.Models;
-using System.Collections.Generic;
-using System.Linq;
 
 namespace SpreadsheetEvaluator.Application.Strategies
 {
     class OrFormulaStrategy : FormulaStrategy
     {
-        public OrFormulaStrategy() : base()
-        {
-
-        }
-
-        public OrFormulaStrategy(Cell cell) : base(cell) { }
-
-        public OrFormulaStrategy(ICollection<Cell> cells) : base(cells) { }
+        public override Cell.Type ResultValueType { get; protected set; } = Cell.Type.Boolean;
 
         override protected string EvaluateFormula()
         {

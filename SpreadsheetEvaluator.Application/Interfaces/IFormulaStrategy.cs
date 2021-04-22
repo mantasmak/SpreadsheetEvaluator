@@ -5,7 +5,7 @@ namespace SpreadsheetEvaluator.Application.Interfaces
 {
     public interface IFormulaStrategy
     {
-        public IEnumerable<Cell> Cells { get; set; }
+        public List<Cell> Cells { get; set; }
 
         string Evaluate();
     }

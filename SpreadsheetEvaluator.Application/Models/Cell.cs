@@ -11,36 +11,13 @@ namespace SpreadsheetEvaluator.Application.Models
 
         public IFormulaStrategy Formula { get; set; }
 
-        public Type ValueType { get; set; }
+        public Type ValueType { get; set; } = Type.Error;
         public enum Type
         {
             Number,
             Text,
             Boolean,
             Error
-        }
-
-        public Cell(string coordinates, string value, Type type)
-        {
-            Coordinates = coordinates;
-            Value = value;
-            ValueType = type;
-        }
-
-        public Cell(string coordinates, Type type, IFormulaStrategy formula)
-        {
-            try
-            {
-                Formula = formula;
-                Coordinates = coordinates;
-                ValueType = type;
-                Value = formula.Evaluate();
-            }
-            catch (Exception e)
-            {
-                ValueType = Type.Error;
-                Value = "Could not evaluate formula!";
-            }
         }
     }
 }

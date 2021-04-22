@@ -1,19 +1,10 @@
-﻿using SpreadsheetEvaluator.Application.Interfaces;
-using SpreadsheetEvaluator.Application.Models;
-using System.Collections.Generic;
+﻿using SpreadsheetEvaluator.Application.Models;
 
 namespace SpreadsheetEvaluator.Application.Strategies
 {
     class SumFormulaStrategy : FormulaStrategy
     {
-        public SumFormulaStrategy() : base()
-        {
-
-        }
-
-        public SumFormulaStrategy(Cell cell) : base(cell) { }
-
-        public SumFormulaStrategy(ICollection<Cell> cells) : base(cells) { }
+        public override Cell.Type ResultValueType { get; protected set; } = Cell.Type.Number;
 
         override protected string EvaluateFormula()
         {
